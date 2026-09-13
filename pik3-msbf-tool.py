@@ -179,7 +179,7 @@ def setup_window():
         import ctypes
         ctypes.windll.shcore.SetProcessDpiAwareness(1)
     else:
-        photo = tk.PhotoImage(file='./assets/python_icon.png')
+        photo = tk.PhotoImage(file='./assets/icon.png')
         root.iconphoto(False, photo)
         root.icon_ref = photo
 
@@ -411,7 +411,7 @@ def print_node_params(type: int, data: bytes) -> str:
 
 def node_table_select(event):
     global node_table
-    sel = node_table.item(node_table.selection()[0], "values")[0]
+    sel = node_table.item(node_table.selection(), "values")[0]
 
     if sel == "" or sel == "-": select_node(-1)
     else: select_node(int(sel))

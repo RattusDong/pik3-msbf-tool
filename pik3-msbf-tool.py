@@ -60,7 +60,7 @@ BRANCH_CONDITIONS = (
 )
 
 EVENT_TYPES = (
-    "unk_event_00",
+    "playDemo",
     "unk_event_01",
     "unk_event_02",
     "unk_event_03",
@@ -136,6 +136,10 @@ EVENT_TYPES = (
     "unk_event_48",
 )
 
+# incomplete, only exist cos annoying mac os thing
+dark_mode = False
+
+
 FLW3_base = 0x30
 
 endian = "<"
@@ -167,6 +171,7 @@ def read_cstring(data: bytes, offset: int) -> str:
 
 def setup_window():
 
+    global dark_mode
     root = tk.Tk()
     root.title("Pikmin 3 MSBF Tool")
 
@@ -192,6 +197,12 @@ def setup_window():
         photo = tk.PhotoImage(file='./assets/icon.png')
         root.iconphoto(False, photo)
         root.icon_ref = photo
+        if sys.platform == "darwin":
+            result = subprocess.run(
+                ["defaults", "read", "-g", "AppleInterfaceStyle"],
+                capture_output=True, text=True
+            )
+            if result.stdout.strip() == "Dark": dark_mode = True
 
     menubar = tk.Menu(root)
     file_menu = tk.Menu(menubar, tearoff=0)
@@ -280,8 +291,12 @@ def setup_window():
     node_table.column("Node Type", width=90, stretch=False, anchor="center")
     node_table.column("Node Data", width=160, stretch=True)
 
-    node_table.tag_configure("even", background="#f8f8f8")
-    node_table.tag_configure("odd", background="#ffffff")
+    if dark_mode: # i hate mac os
+        node_table.tag_configure("even", background="#252525")
+        node_table.tag_configure("odd", background="#1e1e1e")
+    else:
+        node_table.tag_configure("even", background="#f8f8f8")
+        node_table.tag_configure("odd", background="#ffffff")
 
     node_table.bind("<<TreeviewSelect>>", node_table_select)
 

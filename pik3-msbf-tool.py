@@ -198,6 +198,7 @@ def setup_window():
         root.iconphoto(False, photo)
         root.icon_ref = photo
         if sys.platform == "darwin":
+            import subprocess
             result = subprocess.run(
                 ["defaults", "read", "-g", "AppleInterfaceStyle"],
                 capture_output=True, text=True

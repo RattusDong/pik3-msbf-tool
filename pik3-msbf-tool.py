@@ -7,8 +7,8 @@ from tkinter import filedialog
 from tkinter import messagebox
 import tkinter.font as tkfont
 
-WIN_WIDTH = 1000
-WIN_HEIGHT = 600
+WIN_WIDTH = 1200
+WIN_HEIGHT = 800
 
 NODE_TYPES = (
     "INVALID",
@@ -157,6 +157,7 @@ FEN1_data = None
 
 selected_node = -1
 
+
 def error(msg: str):
     messagebox.showerror(title="Error",message=msg)
 
@@ -165,14 +166,23 @@ def read_cstring(data: bytes, offset: int) -> str:
     return data[offset:end].decode("utf-8")
 
 def setup_window():
-    global root
+
     root = tk.Tk()
     root.title("Pikmin 3 MSBF Tool")
 
     root.geometry(f'{WIN_WIDTH}x{WIN_HEIGHT}')
-    root.resizable(False, False)
+    root.minsize(600, 300)
+
+    root.columnconfigure(0,weight=2)
+    root.columnconfigure(1,weight=3)
+
+    root.rowconfigure(0, weight=2)
+    root.rowconfigure(1, weight=7)
 
 
+    style = ttk.Style()
+    style.configure("Treeview.Heading", font=("TkFixedFont", 10, "bold"))
+    style.configure("TLabelframe.Label", font=("TkFixedFont", 10, "bold"))
 
     if sys.platform == "win32":
         root.iconbitmap('./assets/icon.ico')
@@ -200,37 +210,63 @@ def setup_window():
     menubar.add_cascade(label="File", menu=file_menu)
     root.config(menu=menubar)
 
-    label = ttk.Label(root, text='Selected Flowchart')
-    label.place(x=80, y=50)
+
+    # frame row 0 col 0
+    frame = ttk.Labelframe(root, text="Flowcharts", labelanchor="n")
+
     global flowchart_combobox
-    flowchart_combobox = ttk.Combobox(root, values=("none"), state="readonly")
+    flowchart_combobox = ttk.Combobox(frame, values=("none"), state="readonly")
     flowchart_combobox.current(0)
-    flowchart_combobox.bind("<<ComboboxSelected>>", flowchart_combobox_select)
-    flowchart_combobox.place(x=65, y=70)
+    flowchart_combobox.bind("<<ComboboxSelected>>", flowchart_list_select)
+    #flowchart_combobox.pack(expand=True)
 
-    sep = ttk.Separator(root, orient="horizontal")
-    sep.place(x=20, y=110, width=250)
+    global flowchart_list
+    flowchart_list = tk.Listbox(frame, height=6, selectmode=tk.SINGLE)
+    flowchart_list.bind('<<ListboxSelect>>', flowchart_list_select)
+    flowchart_list.pack(padx=6, pady=6, expand=True, fill=tk.BOTH, side=tk.LEFT)
 
-    label = ttk.Label(root, text='Node Editor')
-    label.place(x=105, y=135)
+    frame.grid(column=0, row=0, padx=12, pady=12, sticky="nsew")
 
-    label = ttk.Label(root, text='Parameter Value')
-    label.place(x=165, y=185)
-    global parameter_value
-    parameter_value = ttk.Entry(root)
-    parameter_value.place(x=156, y=205, width=110)
+    # frame row 1 col 0
+    frame_node_edit = ttk.Labelframe(root, text="Node Editor", labelanchor="n")
 
-    label = ttk.Label(root, text='Parameter Type')
-    label.place(x=30, y=185)
-    combobox = ttk.Combobox(root, values=("Unavailable"), state="readonly")
+    frame_node_edit.columnconfigure(0,weight=1)
+    frame_node_edit.columnconfigure(1,weight=1)
+
+    frame_node_edit.rowconfigure(0,weight=2)
+    frame_node_edit.rowconfigure(1,weight=2)
+    frame_node_edit.rowconfigure(2,weight=2)
+    frame_node_edit.rowconfigure(3,weight=1)
+
+    # node editor row 0 col 0
+    frame = ttk.Frame(frame_node_edit)
+
+    label = ttk.Label(frame, text="Parameter Type")
+    label.pack(pady=8)
+    combobox = ttk.Combobox(frame, values=("Unavailable"), state="readonly")
     combobox.current(0)
-    combobox.place(x=20, y=205, width=110)
+    combobox.pack()
 
-    global save_node_button
-    save_node_button = ttk.Button(root, text="Save Node", command=save_node_edit)
-    save_node_button.place(x=100, y=280)
+    frame.grid(row=0,column=0, padx=4, pady=16, sticky="nsew")
 
+    # node editor row 0 col 1
+    frame = ttk.Frame(frame_node_edit)
 
+    label = ttk.Label(frame, text="Parameter Value")
+    label.pack(pady=8)
+    global parameter_value
+    parameter_value = ttk.Entry(frame)
+    parameter_value.pack()
+
+    frame.grid(row=0, column=1, padx=4, pady=16, sticky="nsew")
+
+    # node editor row 3 col 0-1
+    button = ttk.Button(frame_node_edit, text="Save Node", command=save_node_edit)
+    button.grid(row=3, column=0, columnspan=2, padx=4, pady=4, sticky="nsew")
+
+    frame_node_edit.grid(row=1, column=0, padx=12, pady=12, sticky="nsew")
+
+    # row 0-4 col 1
     global node_table
     node_table = ttk.Treeview(root, columns=("ID", "Info", "Node Type", "Node Data"), show="headings")
 
@@ -239,14 +275,17 @@ def setup_window():
     node_table.heading("Node Type", text="Node Type")
     node_table.heading("Node Data", text="Node Data")
 
-    node_table.column("ID", width=40)
-    node_table.column("Info", width=230)
-    node_table.column("Node Type", width=85)
-    node_table.column("Node Data", width=320)
+    node_table.column("ID", width=50, stretch=False)
+    node_table.column("Info", width=130, stretch=True, anchor="e")
+    node_table.column("Node Type", width=90, stretch=False, anchor="center")
+    node_table.column("Node Data", width=160, stretch=True)
+
+    node_table.tag_configure("even", background="#f8f8f8")
+    node_table.tag_configure("odd", background="#ffffff")
 
     node_table.bind("<<TreeviewSelect>>", node_table_select)
 
-    node_table.place(x=290, y=30, width=680, height=520)
+    node_table.grid(column=1, row=0, rowspan=2, sticky="nsew", padx=12, pady=12)
 
     root.mainloop()
 
@@ -269,9 +308,9 @@ def open_file():
         msbf_loaded = True
     else: 
         msbf_loaded = False
-        global flowchart_combobox
-        flowchart_combobox.configure(values=("none"))
-        flowchart_combobox.current(0)
+        global flowchart_list
+        flowchart_list.configure(listvariable=tk.Variable(value=("")))
+
 
 def save_file():
     path = filedialog.asksaveasfilename(
@@ -290,10 +329,14 @@ def save_file():
     
     print(f"Saved to {path}")
 
-def flowchart_combobox_select(event):
+def flowchart_list_select(event):
     if not msbf_loaded: return
-    global flowchart_combobox
-    name = flowchart_combobox.get()
+
+    global flowchart_list
+    sel = flowchart_list.curselection()
+    if not sel: return
+
+    name = flowchart_list.get(sel[0])
     node_id = label_dict[name]
     if node_id == None:
         error(f"Couldnt get Label: {name}")
@@ -302,19 +345,24 @@ def flowchart_combobox_select(event):
     load_from_node(node_id)
 
 def load_from_node(node_id: int):
-    global selected_node
-    selected_node = -1
     clear_node_table()
     global node_table
     queue = [("", node_id)]
+    row_num = 0
     while True:
         if len(queue) == 0: break
+
+        # alternate row colour to make more readable
+        row_tag = "even"
+        if row_num & 0x1 != 0: row_tag = "odd"
+        row_num += 1
+        
         info, node_id = queue.pop()
         if node_id == 0xffff:
-            node_table.insert("", tk.END, values=("-", info, "END", ""))
+            node_table.insert("", tk.END, values=("-", info, "-END-", ""), tags=(row_tag))
             continue
         elif node_id == -1:
-            node_table.insert("", tk.END, values=("", info, "", ""))
+            node_table.insert("", tk.END, values=("", info, "", ""), tags=(row_tag))
             continue
 
         node_type, param_type, param_data, node_data = nodes[node_id]
@@ -333,7 +381,7 @@ def load_from_node(node_id: int):
                 type, cases, table_idx = struct.unpack(f"{endian}2x3H", node_data)
                 description = f"{BRANCH_TYPES[type]}({print_node_params(param_type, param_data)}) cases: {cases}, index: {table_idx}"
                 if info != "": info += " | "
-                info = info + f"<- branch_{node_id}"
+                info = info + f"branch_{node_id} <-"
                 for i in range(cases):
                     idx = (cases - 1) - i
                     target_node = branch_table[table_idx + idx]
@@ -358,7 +406,7 @@ def load_from_node(node_id: int):
             case 4: # entry
                 for lbl in labels:
                     if lbl[1] == node_id:
-                        info = f"{lbl[0]}:  {info}"
+                        info = f"{info} Flowchart \"{lbl[0]}\"->"
 
             case 5: # jump
                 for lbl in labels:
@@ -378,6 +426,7 @@ def load_from_node(node_id: int):
                 NODE_TYPES[node_type],
                 description
             ),
+            tags=(row_tag)
         )
 
 def clear_node_table():
@@ -411,10 +460,16 @@ def print_node_params(type: int, data: bytes) -> str:
 
 def node_table_select(event):
     global node_table
-    sel = node_table.item(node_table.selection(), "values")[0]
+    sel = node_table.selection()
+    if not sel:
+        select_node(-1)
+        return
 
-    if sel == "" or sel == "-": select_node(-1)
-    else: select_node(int(sel))
+    node_id = node_table.item(node_table.selection()[0], "values")[0]
+    if node_id == "" or node_id == "-": 
+        select_node(-1)
+    else: 
+        select_node(int(node_id))
 
 def select_node(id: int):
     global selected_node, parameter_value
@@ -427,21 +482,29 @@ def select_node(id: int):
 # actually add all the configs later, only param_data is important right now
 def save_node_edit():
     if selected_node == -1: return
-    global parameter_value
+    global parameter_value, node_table
     val = int(parameter_value.get(),16)
 
     node_type, param_type, param_data, node_data = nodes[selected_node]
     param_data = struct.pack(f"{endian}I",val)
     nodes[selected_node] = (node_type, param_type, param_data, node_data)
 
-    flowchart_combobox_select(None)
+    flowchart_list_select(None)
+
+    # all this is to keep the current node selected when we save our edit
+    for item in node_table.get_children():
+        node_id = node_table.item(item, "values")[0]
+        if node_id == str(selected_node):
+            node_table.selection_set(item)
+            node_table.see(item)
+            break
 
 def parse_msbf(data: bytes) -> bool:
     global nodes, node_count, branch_table, branch_table_count
     global labels, label_count, label_dict
     global FLW3_data, FEN1_data
     global endian, msbf_loaded, selected_node
-    # clear existing stuff
+    # clear program data and state
     nodes = []
     node_count = 0
     branch_table = []
@@ -537,13 +600,14 @@ def parse_msbf(data: bytes) -> bool:
 
     label_dict = dict(labels)
 
-    global flowchart_combobox
+    global flowchart_list
     label_arr = []
     for i in range(label_count):
         label_arr.append(labels[i][0])
 
-    flowchart_combobox.configure(values=label_arr)
-    flowchart_combobox.current(0)
+    flowchart_list.configure(listvariable=tk.Variable(value=label_arr))
+    flowchart_list.selection_set(0)
+
     load_from_node(labels[0][1])
 
     print("MSBF Loaded!")
